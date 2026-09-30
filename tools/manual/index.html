@@ -2,13 +2,13 @@
 <html lang="zh-CN">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>课间哨 · 手动验收画面</title>
+<title>课堂哨 · 手动验收画面</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#eef2ed;color:#172a3c;font:16px/1.6 "Microsoft YaHei",sans-serif}main{max-width:1100px;margin:36px auto;padding:0 24px}h1{font-size:28px;margin-bottom:8px}p{margin:8px 0}canvas{display:block;width:min(100%,100vh);height:auto;aspect-ratio:5/3;border:1px solid #b8c8bd;background:#fff;border-radius:8px;margin:18px 0}button,input,select{font:inherit;padding:8px 12px;border:1px solid #91aa9c;border-radius:5px;background:white;color:#172a3c}button{cursor:pointer}button:hover{background:#dfeae2}.controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}.hint{background:#fff;padding:14px 18px;border-left:4px solid #277552}#schedule{font-weight:bold}input{width:90px}
 </style>
 <main>
 <h1>手动验收画面</h1>
-<p>这里是本机生成的合成课程画面。先打开课间哨，选择「手动框选区域」，拖拽覆盖下方整块画面。检测间隔选 0.5s。</p>
+<p>这里是本机生成的合成课程画面。先打开课堂哨，选择「手动框选区域」，拖拽覆盖下方整块画面。检测间隔选 0.5s。</p>
 <canvas id="screen" width="1500" height="900"></canvas>
 <div class="controls">
 <button id="show">显示两个二维码</button><button id="hide">隐藏全部二维码</button><button id="refresh">同处刷新二维码内容</button>

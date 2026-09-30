@@ -3,6 +3,11 @@ import { EpisodeTracker } from '../src/detection/episode';
 import type { Detection } from '../src/shared/types';
 const qr = (text = 'https://mlearning.sjtu.edu.cn/question?a=1&token=x', x = .2): Detection => ({ decoded: true, text, rect: { x, y: .2, width: .12, height: .2 } });
 describe('二维码报警轮次与开页', () => {
+  it('离场冷却有明确的截止时间，完成后恢复监控', () => {
+    const t = new EpisodeTracker(); t.update([qr()], 0, 500, 10, false); t.update([qr()], 500, 500, 10, false);
+    expect(t.update([], 1000, 500, 10, false).cooldownUntil).toBe(11000);
+    expect(t.update([], 11000, 500, 10, false)).toMatchObject({ present: false, cooldownUntil: undefined, codes: [] });
+  });
   it('两次解码才报警，同轮只响一次', () => {
     const t = new EpisodeTracker();
     expect(t.update([qr()], 0, 500, 10, false).alarm).toBe(false);

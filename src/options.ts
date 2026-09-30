@@ -31,6 +31,7 @@ element('reset-sound').onclick = () => { void action(async () => { await save({ 
 volume.oninput = () => { element('volume-label').textContent = `${volume.value}%`; };
 volume.onchange = () => { void action(() => save({ volume: Number(volume.value) })); };
 element('test-sound').onclick = () => { void action(async () => { await request('TEST_SOUND', { play: true }); success('正在循环测试。听到后请点击“停止测试”。'); }); };
+element('test-fault').onclick = () => { void action(async () => { await request('TEST_SOUND', { play: true, kind: 'fault' }); success('正在测试故障报警，请点击“停止测试”。'); }); };
 element('stop-test').onclick = () => { void action(async () => { await request('TEST_SOUND', { play: false }); success('已停止测试；真实报警仍需单独消警。'); }); };
 window.addEventListener('pagehide', () => { void request('TEST_SOUND', { play: false }).catch(() => undefined); });
 void snapshot().then(data => { settings = data.settings; render(); }).catch(showError);

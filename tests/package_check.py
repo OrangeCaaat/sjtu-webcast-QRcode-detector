@@ -2,7 +2,7 @@ from pathlib import Path
 import zipfile, json, re
 
 ROOT = Path(__file__).resolve().parent.parent
-archive = ROOT / '课间哨-Edge-Chrome-0.1.0.zip'
+archive = ROOT / '课堂哨-Edge-Chrome-0.1.1.zip'
 with zipfile.ZipFile(archive) as package:
     assert package.testzip() is None, 'ZIP CRC failure'
     names=set(package.namelist())

@@ -18,7 +18,7 @@ let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
 let sampleTimer: ReturnType<typeof setInterval> | undefined;
 let frameCallback: number | null = null;
 let alarms: AlarmKind[] = [];
-let testSound = false;
+let testSound: AlarmKind | 'test' | null = null;
 let fault: string | null = null;
 let previewSent = false;
 let tracker = new EpisodeTracker();
@@ -27,7 +27,7 @@ function emit(type: string, payload: Record<string, unknown> = {}): void {
 }
 const sound = new SoundPlayer(error => emit('AUDIO_ERROR', { error, sessionId: sessionId ?? audioSessionId }));
 function applySound(): void {
-  const kind = alarms.includes('fault') ? 'fault' : alarms.includes('qr') ? 'qr' : testSound ? 'test' : null;
+  const kind = alarms.includes('fault') ? 'fault' : alarms.includes('qr') ? 'qr' : testSound;
   if (kind) void sound.play(kind, settings); else sound.stop();
 }
 function setFault(reason: string): void {
@@ -75,9 +75,10 @@ function sample(): void {
   if (video.currentTime !== lastMediaTime) { lastMediaTime = video.currentTime; lastCaptureAt = now; }
   if (now - lastCaptureAt > 10000) { setFault('标签页采集画面已停止更新。'); return; }
   if (region.playerTime !== undefined) {
-    if (region.playerTime !== lastPlayerTime) { lastPlayerTime = region.playerTime; lastPlayerProgress = now; }
-    if (region.playerPaused) { setFault('直播播放器已暂停，请恢复播放。'); return; }
-    if (now - lastPlayerProgress > 10000) { setFault('直播播放时间超过 10 秒没有推进，可能断流。'); return; }
+    if (region.playerTime !== lastPlayerTime || region.playerPaused) { lastPlayerTime = region.playerTime; lastPlayerProgress = now; }
+    // A deliberate pause still leaves a useful QR frame. Keep sampling it;
+    // diagnose a stalled source only when it claims to be playing.
+    if (!region.playerPaused && now - lastPlayerProgress > 10000) { setFault('直播播放时间超过 10 秒没有推进，可能断流。'); return; }
   }
   const sx = video.videoWidth / region.viewportWidth, sy = video.videoHeight / region.viewportHeight;
   const x = Math.round(region.x * sx), y = Math.round(region.y * sy);
@@ -107,7 +108,7 @@ function stopSession(): void {
   sessionId = null; releaseCapture(); worker?.terminate(); worker = null; busy = false;
   if (sampleTimer) clearInterval(sampleTimer); sampleTimer = undefined;
   if (heartbeatTimer) clearInterval(heartbeatTimer); heartbeatTimer = undefined;
-  alarms = []; testSound = false; sound.stop(); tracker.reset();
+  alarms = []; testSound = null; sound.stop(); tracker.reset();
 }
 async function capture(id: string): Promise<void> {
   releaseCapture();
@@ -140,7 +141,7 @@ async function handle(message: Envelope): Promise<unknown> {
     fault = message.reason as string; return true;
   }
   if (message.type === 'SET_SETTINGS') { settings = message.settings as Settings; schedule(); applySound(); return true; }
-  if (message.type === 'TEST_SOUND') { settings = message.settings as Settings; testSound = !!message.play; applySound(); return true; }
+  if (message.type === 'TEST_SOUND') { settings = message.settings as Settings; testSound = message.play ? message.kind === 'fault' ? 'fault' : 'test' : null; applySound(); return true; }
   if (message.sessionId !== sessionId && message.type !== 'SET_ALARMS') return false;
   if (message.type === 'UPDATE_REGION') {
     const next = message.region as Region;
@@ -149,7 +150,7 @@ async function handle(message: Envelope): Promise<unknown> {
   }
   if (message.type === 'SET_ALARMS') {
     if (message.sessionId !== sessionId && sessionId) return false;
-    audioSessionId = message.sessionId ?? null; alarms = message.alarms as AlarmKind[]; testSound = false; applySound(); return true;
+    audioSessionId = message.sessionId ?? null; alarms = message.alarms as AlarmKind[]; testSound = null; applySound(); return true;
   }
   if (message.type === 'RETRY_ENGINE') {
     if (message.streamId) await capture(message.streamId as string);

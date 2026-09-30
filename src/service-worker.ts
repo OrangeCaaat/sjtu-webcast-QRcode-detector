@@ -156,7 +156,7 @@ async function handle(message: Envelope, sender: chrome.runtime.MessageSender): 
   }
   if (message.type === 'NEXT_PLAYER') { await content('NEXT_PLAYER'); return true; }
   if (message.type === 'TEST_SOUND') {
-    await ensureOffscreen(); await offscreen('TEST_SOUND', { play: !!message.play, settings }); return true;
+    await ensureOffscreen(); await offscreen('TEST_SOUND', { play: !!message.play, kind: message.kind === 'fault' ? 'fault' : 'qr', settings }); return true;
   }
   if (message.type === 'FOCUS_TAB') {
     if (state.tabId !== null) { const tab = await chrome.tabs.update(state.tabId, { active: true }); if (tab) await chrome.windows.update(tab.windowId, { focused: true }); }
@@ -213,9 +213,9 @@ async function handle(message: Envelope, sender: chrome.runtime.MessageSender): 
   if (message.type === 'DETECTIONS') {
     if (state.fatalError) return false;
     const result = message.result as EpisodeResult;
-    state.lastFrameAt = message.lastFrameAt as number; state.qrPresent = result.present; state.codes = result.codes;
+    state.lastFrameAt = message.lastFrameAt as number; state.qrPresent = result.present; state.codes = result.codes; state.cooldownUntil = result.cooldownUntil;
     state.health = 'monitoring'; state.retrySince = null;
-    state.detail = state.qrPresent ? result.codes.some(c => c.decoded) ? '检测到二维码。请处理课程中的签到或问卷。' : '疑似二维码，未解码。请返回直播确认。' : state.region?.playerTime === undefined ? '正在检测选定区域；此播放器未提供播放时间诊断。' : '正在检测直播画面。';
+    state.detail = result.cooldownUntil ? `二维码已消失，冷却剩余 ${Math.max(0, Math.ceil((result.cooldownUntil - Date.now()) / 1000))} 秒。检测继续。` : state.qrPresent ? !result.alarm && !state.alarms.includes('qr') ? '已停止报警，监控继续。二维码消失并完成冷却后恢复监控状态。' : result.codes.some(c => c.decoded) ? '检测到二维码。请处理课程中的签到或问卷。' : '疑似二维码，未解码。请返回直播确认。' : state.region?.playerPaused ? '播放器已暂停，正在检测当前画面。恢复播放后继续跟随视频。' : state.region?.playerTime === undefined ? '正在检测选定区域。' : '正在检测直播画面。';
     if (result.alarm) await alarm('qr');
     for (const open of result.opens) {
       let success = false;

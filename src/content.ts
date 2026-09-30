@@ -9,6 +9,8 @@ import type { Envelope, Region, State } from './shared/types';
   let manual: { x: number; y: number; width: number; height: number } | null = null;
   let identity = '', version = 1, lastRect: Region | null = null;
   let lastSent = '', running = false, selecting = false;
+  let collapsed = false;
+  let position: { x: number; y: number } | null = null;
   const host = document.createElement('div'); host.id = 'webcast-monitor-widget';
   host.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:2147483647;display:none;';
   const shadow = host.attachShadow({ mode: 'open' });
@@ -19,22 +21,61 @@ import type { Envelope, Region, State } from './shared/types';
     .detail{max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#c2d0dd;font-size:11px}
     .border{pointer-events:none;position:fixed;border:2px solid #77cba4;border-radius:3px;box-sizing:border-box;display:none}.pick{position:fixed;inset:0;background:#12243833;cursor:crosshair;display:none;touch-action:none}
     .instruction{position:absolute;top:62px;left:50%;transform:translateX(-50%);background:#172a3c;padding:12px 20px;border-radius:8px;font-size:14px;white-space:nowrap}
-  </style><div class="border"></div><div class="pick"><div class="instruction">拖拽框选直播画面 · 按 Esc 取消</div></div><div class="bar"><span class="dot"></span><div><strong id="status">课间哨</strong><div class="detail"></div></div><button id="ack" hidden>停止报警</button><button id="choose">框选</button><button id="stop">停止监控</button></div>`;
+    .grip{cursor:move;padding:4px 6px;touch-action:none}.mini{display:none;width:32px;height:32px;padding:0;border-radius:50%;background:#172a3c;box-shadow:0 3px 12px #0005;touch-action:none}.mini .dot{display:inline-block;width:12px;height:12px}.mini.alert .dot{animation:pulse 1s ease-in-out infinite}@keyframes pulse{50%{opacity:.35}}@media(prefers-reduced-motion:reduce){.mini.alert .dot{animation:none}}
+  </style><div class="border"></div><div class="pick"><div class="instruction">拖拽框选直播画面 · 按 Esc 取消</div></div><button class="mini" title="点击展开，可拖动" aria-label="展开课堂哨控件"><span class="dot"></span></button><div class="bar"><button class="grip" title="拖动控件" aria-label="拖动课堂哨控件">⠿</button><span class="dot"></span><div><strong id="status">课堂哨</strong><div class="detail"></div></div><button id="ack" hidden>停止报警</button><button id="choose">框选</button><button id="stop">停止监控</button><button id="collapse" title="只保留状态指示灯" aria-label="收起课堂哨控件">收起</button></div>`;
   document.documentElement.append(host);
-  const dot = shadow.querySelector('.dot')!, label = shadow.querySelector('#status')!;
+  const dot = shadow.querySelector('.bar .dot')!, label = shadow.querySelector('#status')!;
+  const mini = shadow.querySelector<HTMLButtonElement>('.mini')!;
+  const miniDot = mini.querySelector('.dot')!;
   const detail = shadow.querySelector('.detail')!;
   const border = shadow.querySelector<HTMLElement>('.border')!, pick = shadow.querySelector<HTMLElement>('.pick')!;
   const ack = shadow.querySelector<HTMLButtonElement>('#ack')!;
+  function moveTo(x: number, y: number): void {
+    const rect = host.getBoundingClientRect();
+    position = { x: Math.max(4, Math.min(x, innerWidth - rect.width - 4)), y: Math.max(4, Math.min(y, innerHeight - rect.height - 4)) };
+    host.style.left = `${position.x}px`; host.style.top = `${position.y}px`; host.style.transform = 'none';
+  }
+  function showMode(): void {
+    shadow.querySelector<HTMLElement>('.bar')!.style.display = collapsed ? 'none' : 'flex';
+    mini.style.display = collapsed ? 'block' : 'none';
+    if (position) moveTo(position.x, position.y);
+  }
+  shadow.querySelector<HTMLButtonElement>('#collapse')!.onclick = () => { collapsed = true; showMode(); };
+  function draggable(element: HTMLElement, expandOnClick = false): void {
+    let origin: { x: number; y: number; left: number; top: number } | null = null;
+    let moved = false;
+    element.addEventListener('pointerdown', event => {
+      if (event.button !== 0) return;
+      const rect = host.getBoundingClientRect(); origin = { x: event.clientX, y: event.clientY, left: rect.left, top: rect.top }; moved = false;
+      element.setPointerCapture(event.pointerId); event.preventDefault();
+    });
+    element.addEventListener('pointermove', event => {
+      if (!origin) return;
+      const dx = event.clientX - origin.x, dy = event.clientY - origin.y;
+      if (Math.hypot(dx, dy) > 4) moved = true;
+      if (moved) moveTo(origin.left + dx, origin.top + dy);
+    });
+    element.addEventListener('pointerup', () => { if (origin && expandOnClick && !moved) { collapsed = false; showMode(); } origin = null; });
+    element.addEventListener('pointercancel', () => { origin = null; });
+    if (expandOnClick) element.addEventListener('click', event => { if (event.detail === 0) { collapsed = false; showMode(); } });
+  }
+  draggable(shadow.querySelector<HTMLElement>('.grip')!); draggable(mini, true);
+  window.addEventListener('resize', () => { if (!selecting && position) moveTo(position.x, position.y); });
   function emit(type: string, payload: Record<string, unknown> = {}): void {
     void chrome.runtime.sendMessage({ target: 'background', type, sessionId, ...payload }).catch(() => undefined);
   }
   function candidates(): HTMLElement[] {
     const elements = [...document.querySelectorAll<HTMLElement>('video, canvas, .player-wrapper, .second-player-wrapper__body')];
-    return elements.filter(element => {
+    const visible = elements.filter(element => {
       const rect = element.getBoundingClientRect(), css = getComputedStyle(element);
       return rect.width >= 160 && rect.height >= 90 && css.visibility !== 'hidden' && css.display !== 'none' && rect.bottom > 0 && rect.right > 0 && rect.left < innerWidth && rect.top < innerHeight;
-    }).sort((a, b) => {
+    });
+    return visible.filter(element => ['VIDEO', 'CANVAS'].includes(element.tagName) || !visible.some(media => ['VIDEO', 'CANVAS'].includes(media.tagName) && element.contains(media))).sort((a, b) => {
       const ar = a.getBoundingClientRect(), br = b.getBoundingClientRect();
+      if (Math.abs(ar.width * ar.height - br.width * br.height) < Math.max(ar.width * ar.height, br.width * br.height) * .02) {
+        if (a.tagName === 'VIDEO' && b.tagName !== 'VIDEO') return -1;
+        if (b.tagName === 'VIDEO' && a.tagName !== 'VIDEO') return 1;
+      }
       return br.width * br.height - ar.width * ar.height;
     }).filter((element, index, all) => !all.slice(0, index).some(outer => {
       const a = outer.getBoundingClientRect(), b = element.getBoundingClientRect();
@@ -76,12 +117,13 @@ import type { Envelope, Region, State } from './shared/types';
     selecting = true; host.style.display = 'block';
     host.style.left = '0'; host.style.top = '0'; host.style.transform = 'none'; host.style.width = '100vw'; host.style.height = '100vh';
     pick.style.display = 'block'; border.style.display = 'none';
+    mini.style.display = 'none';
     shadow.querySelector<HTMLElement>('.bar')!.style.display = 'none';
   }
   function endSelect(): void {
     selecting = false; pick.style.display = 'none';
     host.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:2147483647;display:block;';
-    shadow.querySelector<HTMLElement>('.bar')!.style.display = 'flex';
+    showMode();
     border.style.display = 'none';
   }
   let drag: { x: number; y: number } | null = null;
@@ -113,6 +155,7 @@ import type { Envelope, Region, State } from './shared/types';
       autoSelect(); identity = selected ? `auto-${selected.tagName}-${selected.id}` : 'none';
       if (message.manualRequired) { selected = null; manual = null; identity = 'none'; }
       host.style.display = 'block'; label.textContent = '监控区域预览'; detail.textContent = '绿框表示即将检测的画面';
+      showMode();
       const region = computeRegion(); showBorder(region); setTimeout(() => { border.style.display = 'none'; }, 2000);
       respond({ ok: true, data: { region, choices: candidates().length } }); return;
     }
@@ -128,8 +171,11 @@ import type { Envelope, Region, State } from './shared/types';
       const state = message.state as State; running = state.health !== 'stopped';
       host.style.display = running || state.alarms.length ? 'block' : 'none';
       dot.className = `dot ${state.health === 'error' || state.health === 'recovering' ? state.health : state.qrPresent ? 'qr' : state.health}`;
-      label.textContent = state.health === 'error' ? '出现问题' : state.health === 'recovering' ? '正在恢复' : state.qrPresent ? '检测到二维码' : state.health === 'monitoring' ? '监控中' : state.health === 'starting' ? '正在启动' : '已停止';
+      miniDot.className = dot.className; mini.classList.toggle('alert', state.alarms.length > 0);
+      label.textContent = state.health === 'error' ? '出现问题' : state.health === 'recovering' ? '正在恢复' : state.cooldownUntil ? '冷却中' : state.qrPresent ? '检测到二维码' : state.health === 'monitoring' ? '监控中' : state.health === 'starting' ? '正在启动' : '已停止';
       detail.textContent = state.detail; ack.hidden = state.alarms.length === 0;
+      mini.title = `课堂哨：${label.textContent}。点击展开，可拖动`; mini.setAttribute('aria-label', mini.title);
+      if (!selecting) showMode();
       respond({ ok: true }); return;
     }
     if (message.type === 'GET_REGION') { respond({ ok: true, data: computeRegion() }); return; }

@@ -2,7 +2,7 @@ import { DEFAULT_SETTINGS, INTERVALS, type Settings } from './types';
 
 export function validateSettings(value: Settings): Settings {
   if (!(INTERVALS as readonly number[]).includes(value.detectionIntervalMs)) throw new Error('请选择有效的检测间隔。');
-  if (!Number.isInteger(value.rearmSeconds) || value.rearmSeconds < 1 || value.rearmSeconds > 300) throw new Error('重新布防时间必须是 1–300 秒的整数。');
+  if (!Number.isInteger(value.rearmSeconds) || value.rearmSeconds < 1 || value.rearmSeconds > 300) throw new Error('冷却时间必须是 1–300 秒的整数。');
   if (!Number.isFinite(value.volume) || value.volume < 0 || value.volume > 100) throw new Error('音量必须在 0–100% 之间。');
   if (typeof value.autoOpen !== 'boolean') throw new Error('自动打开设置无效。');
   if (value.customSoundName !== null && typeof value.customSoundName !== 'string') throw new Error('铃声设置无效。');

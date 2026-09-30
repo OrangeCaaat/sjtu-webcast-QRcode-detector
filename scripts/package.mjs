@@ -22,5 +22,5 @@ for (const file of files) {
 }
 const directories = Buffer.concat(central), end = Buffer.alloc(22); end.writeUInt32LE(0x06054b50); end.writeUInt16LE(files.length, 8); end.writeUInt16LE(files.length, 10); end.writeUInt32LE(directories.length, 12); end.writeUInt32LE(offset, 16);
 await mkdir('temp', { recursive: true });
-await writeFile('课间哨-Edge-Chrome-0.1.0.zip', Buffer.concat([...local, directories, end]));
-console.log(`已打包 ${files.length} 个插件文件：课间哨-Edge-Chrome-0.1.0.zip`);
+await writeFile('课堂哨-Edge-Chrome-0.1.1.zip', Buffer.concat([...local, directories, end]));
+console.log(`已打包 ${files.length} 个插件文件：课堂哨-Edge-Chrome-0.1.1.zip`);

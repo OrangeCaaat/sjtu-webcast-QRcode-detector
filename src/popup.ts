@@ -8,7 +8,7 @@ let codeSignature = '';
 const rearm = element<HTMLInputElement>('rearm'), autoOpen = element<HTMLInputElement>('auto-open'), volume = element<HTMLInputElement>('volume');
 function render(state: State): void {
   const names = { stopped: '已停止', starting: '正在启动', monitoring: state.qrPresent ? '检测到二维码' : '监控中', recovering: '正在恢复', error: '出现问题' };
-  element('status').textContent = names[state.health]; element('detail').textContent = state.detail;
+  element('status').textContent = state.health === 'monitoring' && state.cooldownUntil ? '冷却中' : names[state.health]; element('detail').textContent = state.detail;
   element('status-dot').className = state.health === 'monitoring' && state.qrPresent ? 'qr' : state.health;
   element('session-title').textContent = state.title;
   element('start').hidden = !!state.sessionId; element('stop').hidden = !state.sessionId;
@@ -67,7 +67,7 @@ async function save(patch: Partial<Settings>): Promise<void> {
 document.querySelectorAll<HTMLInputElement>('input[name="interval"]').forEach(input => input.onchange = () => { void save({ detectionIntervalMs: Number(input.value) }); });
 rearm.onchange = () => {
   const value = Number(rearm.value);
-  if (!Number.isInteger(value) || value < 1 || value > 300 || !rearm.value.trim()) { showError(new Error('重新布防时间必须是 1–300 秒的整数。')); rearm.value = String(settings.rearmSeconds); return; }
+  if (!Number.isInteger(value) || value < 1 || value > 300 || !rearm.value.trim()) { showError(new Error('冷却时间必须是 1–300 秒的整数。')); rearm.value = String(settings.rearmSeconds); return; }
   void save({ rearmSeconds: value });
 };
 autoOpen.onchange = () => { void save({ autoOpen: autoOpen.checked }); };

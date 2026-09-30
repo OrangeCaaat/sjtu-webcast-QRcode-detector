@@ -47,21 +47,22 @@ export class SoundPlayer {
         this.onError('声音输出未启动，请点击“测试声音”并检查浏览器及系统静音设置。'); return;
       }
       const base = this.context.currentTime;
-      const pitches = kind === 'fault' ? [440, 330] : [880, 1174, 880];
+      const pitches = kind === 'fault' ? [660, 440, 660, 440] : [880, 1174, 880];
       pitches.forEach((pitch, index) => {
         const oscillator = this.context.createOscillator();
         this.oscillators.add(oscillator);
         const envelope = this.context.createGain();
-        const t = base + index * .24;
-        oscillator.type = 'sine'; oscillator.frequency.value = pitch;
-        envelope.gain.setValueAtTime(0, t); envelope.gain.linearRampToValueAtTime(.23, t + .025);
-        envelope.gain.exponentialRampToValueAtTime(.001, t + .19);
+        const t = base + index * .3;
+        oscillator.type = 'triangle'; oscillator.frequency.value = pitch;
+        envelope.gain.setValueAtTime(0, t); envelope.gain.linearRampToValueAtTime(.8, t + .015);
+        envelope.gain.setValueAtTime(.8, t + .22);
+        envelope.gain.linearRampToValueAtTime(0, t + .28);
         oscillator.connect(envelope); envelope.connect(this.gain);
-        oscillator.start(t); oscillator.stop(t + .21);
+        oscillator.start(t); oscillator.stop(t + .29);
         oscillator.onended = () => { this.oscillators.delete(oscillator); oscillator.disconnect(); envelope.disconnect(); };
       });
     };
-    beep(); this.timer = setInterval(beep, kind === 'fault' ? 3000 : 1600);
+    beep(); this.timer = setInterval(beep, kind === 'fault' ? 3000 : 1400);
   }
   setVolume(volume: number): void {
     this.gain.gain.value = volume / 100;

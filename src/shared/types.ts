@@ -24,6 +24,7 @@ export interface State {
   preview?: string; notificationError?: string; audioError?: string;
   pageOrigin?: string;
   fatalError?: boolean;
+  cooldownUntil?: number;
 }
 export interface WorkerInput { requestId: number; width: number; height: number; buffer: ArrayBuffer }
 export interface WorkerOutput { requestId: number; detections: Detection[]; durationMs: number; error?: string }

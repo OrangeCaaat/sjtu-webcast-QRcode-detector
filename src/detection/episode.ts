@@ -6,7 +6,7 @@ interface Track {
   decodedHits: number; text?: string; confirmed: boolean; decoded: boolean;
   attempted: boolean; opened: boolean; suppressed: boolean;
 }
-export interface EpisodeResult { alarm: boolean; present: boolean; codes: CodeView[]; opens: { id: number; url: string }[] }
+export interface EpisodeResult { alarm: boolean; present: boolean; cooldownUntil?: number; codes: CodeView[]; opens: { id: number; url: string }[] }
 export function overlap(a: Rect, b: Rect): number {
   const w = Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x));
   const h = Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y));
@@ -80,6 +80,7 @@ export class EpisodeTracker {
     // Drop unconfirmed stale candidates; confirmed tracks last only until this round ends.
     this.tracks = this.tracks.filter(t => t.confirmed || now - t.lastSeen < Math.max(5000, interval * 3));
     return { alarm, present: this.triggered,
+      cooldownUntil: this.triggered && this.goneSince !== null ? this.goneSince + rearmSeconds * 1000 : undefined,
       codes: this.tracks.filter(t => t.confirmed).map(t => ({ id: t.id, text: t.decoded ? t.text : undefined,
         decoded: t.decoded, opened: t.opened, autoOpenSuppressed: t.suppressed })), opens };
   }

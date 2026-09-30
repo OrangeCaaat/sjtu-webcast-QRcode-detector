@@ -55,6 +55,20 @@ with sync_playwright() as p:
         wait_truthy(fixture,"window.__sent.some(m=>m.type==='REGION_SELECTED')")
         selected = fixture.evaluate("window.__sent.find(m=>m.type==='REGION_SELECTED').region")
         assert selected['manual'] and selected['valid'], selected
+        widget = fixture.locator('#webcast-monitor-widget')
+        widget.locator('#collapse').click()
+        assert widget.locator('.bar').is_hidden() and widget.locator('.mini').is_visible()
+        start = widget.bounding_box()
+        fixture.mouse.move(start['x']+16,start['y']+16);fixture.mouse.down();fixture.mouse.move(80,80);fixture.mouse.up()
+        moved = widget.bounding_box()
+        assert abs(moved['x']-start['x'])>20, (start,moved)
+        widget.locator('.mini').click()
+        assert widget.locator('.bar').is_visible() and widget.locator('.mini').is_hidden()
+        fixture.evaluate("window.__listener({target:'content',type:'STATE',sessionId:'geometry',state:{health:'monitoring',qrPresent:true,alarms:['qr'],detail:'检测到二维码'}},null,()=>{})")
+        widget.locator('#collapse').click()
+        assert widget.locator('.mini.alert').is_visible() and widget.locator('.bar').is_hidden()
+        widget.locator('.mini').focus();fixture.keyboard.press('Enter')
+        assert widget.locator('.bar').is_visible()
         fixture.set_viewport_size({'width':1100,'height':850})
         invalid = fixture.evaluate("new Promise(r=>window.__listener({target:'content',type:'GET_REGION',sessionId:'geometry'},null,r))")['data']
         assert not invalid['valid'] and '重新框选' in invalid['reason'], invalid
@@ -69,7 +83,7 @@ with sync_playwright() as p:
         wait_truthy(restored,"document.querySelector('#status').textContent==='出现问题'")
         assert '异常结束' in restored.locator('#detail').inner_text()
         assert restored.locator('#retry').is_hidden()
-        (OUT / 'result.json').write_text(json.dumps({'passed': True, 'browser': context.browser.version, 'checks': 14, 'limits':'No genuine toolbar invocation, tabCapture or authenticated SJTU test', 'page_errors':errors}, ensure_ascii=False, indent=2), encoding='utf8')
-        print('Extension smoke: PASS (MV3, storage, offscreen, import, selection, restart; 14 checks)')
+        (OUT / 'result.json').write_text(json.dumps({'passed': True, 'browser': context.browser.version, 'checks': 19, 'limits':'No genuine toolbar invocation, tabCapture or authenticated SJTU test', 'page_errors':errors}, ensure_ascii=False, indent=2), encoding='utf8')
+        print('Extension smoke: PASS (MV3, storage, offscreen, import, selection, widget collapse/drag, restart; 19 checks)')
     finally:
         context.close()

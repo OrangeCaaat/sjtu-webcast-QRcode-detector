@@ -19,4 +19,16 @@ describe('未解码定位符候选', () => {
     expect(findCandidates(image(320, [{ x: 40, y: 40, unit: 4 }]))).toHaveLength(0);
     expect(findCandidates(image(320, [{ x: 30, y: 80, unit: 3 }, { x: 120, y: 80, unit: 3 }, { x: 210, y: 80, unit: 3 }]))).toHaveLength(0);
   });
+  it('仅中心横纵比例相同、缺少完整方形外圈的图案不构成候选', () => {
+    const patterns = [{ x: 40, y: 40, unit: 4 }, { x: 208, y: 40, unit: 4 }, { x: 40, y: 208, unit: 4 }];
+    const frame = image(320, patterns);
+    for (const { x, y, unit } of patterns) for (let row = 0; row < 7; row++) for (let col = 0; col < 7; col++) {
+      if (!(row === 0 || row === 6 || col === 0 || col === 6) || row === 3 || col === 3) continue;
+      for (let dy = 0; dy < unit; dy++) for (let dx = 0; dx < unit; dx++) {
+        const index = ((y + row * unit + dy) * 320 + x + col * unit + dx) * 4;
+        frame.data[index] = frame.data[index + 1] = frame.data[index + 2] = 255;
+      }
+    }
+    expect(findCandidates(frame)).toHaveLength(0);
+  });
 });

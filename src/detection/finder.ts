@@ -7,8 +7,8 @@ function ratio(runs: number[]): boolean {
   const unit = sum / 7;
   return runs.every((n, i) => Math.abs(n - unit * (i === 2 ? 3 : 1)) < unit * (i === 2 ? 1.5 : .8));
 }
-// Locate the three 1:1:3:1:1 finder patterns, cross-checking vertical structure.
-// This only produces a candidate; temporal confirmation is required before an alarm.
+// Ratios alone also occur in Chinese glyphs and decorative PPT backgrounds.
+// Require the complete nested square, white separator and three-point geometry.
 export function findCandidates(image: ImageData): Rect[] {
   const { width, height, data } = image;
   const gray = new Uint8Array(width * height);
@@ -73,6 +73,25 @@ export function findCandidates(image: ImageData): Rect[] {
     }
   }
   const strong = points.filter(p => p.count >= 2).sort((a, b) => b.count - a.count).slice(0, 45);
+  function nestedSquare(point: Point, ux: number, uy: number): boolean {
+    const unit = point.module * Math.max(Math.abs(ux), Math.abs(uy));
+    const vx = -uy, vy = ux;
+    let outer = 0, white = 0, center = 0, separator = 0, available = 0;
+    let darkGray = 0, lightGray = 0, darkCount = 0, lightCount = 0;
+    for (let row = -4; row <= 4; row++) for (let col = -4; col <= 4; col++) {
+      const x = Math.round(point.x + (col * ux + row * vx) * unit);
+      const y = Math.round(point.y + (col * uy + row * vy) * unit);
+      if (x < 0 || x >= width || y < 0 || y >= height) return false;
+      const i = y * width + x, radius = Math.max(Math.abs(row), Math.abs(col));
+      if (radius === 4) { separator += 1 - black[i]; available++; continue; }
+      const expectedDark = radius === 3 || radius <= 1;
+      if (expectedDark) { darkGray += gray[i]; darkCount++; } else { lightGray += gray[i]; lightCount++; }
+      if (radius === 3) outer += black[i];
+      else if (radius === 2) white += 1 - black[i];
+      else center += black[i];
+    }
+    return outer >= 21 && white >= 14 && center >= 8 && separator / available >= .84 && lightGray / lightCount - darkGray / darkCount >= 24;
+  }
   const candidates: Rect[] = [];
   for (let i = 0; i < strong.length; i++) for (let j = i + 1; j < strong.length; j++) for (let k = j + 1; k < strong.length; k++) {
     const triple = [strong[i], strong[j], strong[k]];
@@ -84,6 +103,7 @@ export function findCandidates(image: ImageData): Rect[] {
       const ab = Math.hypot(bx, by), ac = Math.hypot(cx, cy), module = sizes.reduce((x, y) => x + y, 0) / 3;
       if (Math.min(ab, ac) < module * 12 || Math.min(ab, ac) / Math.max(ab, ac) < .7) continue;
       if (Math.abs(bx * cx + by * cy) / (ab * ac) > .25) continue;
+      if (!triple.every(point => nestedSquare(point, bx / ab, by / ab))) continue;
       const fourth = { x: b.x + c.x - a.x, y: b.y + c.y - a.y };
       const pad = module * 5;
       const left = Math.max(0, Math.min(...triple.map(p => p.x), fourth.x) - pad);

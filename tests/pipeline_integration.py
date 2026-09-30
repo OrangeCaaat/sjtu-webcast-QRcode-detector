@@ -89,8 +89,9 @@ with sync_playwright() as p:
         fixture.locator('#refresh').click();fixture.wait_for_timeout(100);source();fixture.wait_for_timeout(1800)
         assert len([page for page in context.pages if page.url.startswith('https://example.org/course')])==2
         assert not request('GET_SNAPSHOT')['state']['alarms']
-        fixture.locator('#hide').click();fixture.wait_for_timeout(100);source();fixture.wait_for_timeout(1800)
-        assert not request('GET_SNAPSHOT')['state']['qrPresent']
+        fixture.locator('#hide').click();fixture.wait_for_timeout(100);source();cooldown_start=time.monotonic()
+        wait_truthy(popup,"chrome.storage.session.get('state').then(s=>s.state?.health==='monitoring'&&!s.state.qrPresent)",timeout=5000)
+        cooldown_elapsed=round((time.monotonic()-cooldown_start)*1000)
         fixture.locator('#show').click();fixture.wait_for_timeout(100);source()
         wait_truthy(popup,"chrome.storage.session.get('state').then(s=>s.state?.alarms.includes('qr'))",timeout=5000)
         request('ACK_ALARMS')
@@ -103,7 +104,7 @@ with sync_playwright() as p:
         wait_truthy(popup,"chrome.storage.session.get('state').then(s=>s.state?.fatalError&&s.state?.health==='error')",timeout=5000)
         popup.wait_for_timeout(1500);assert request('GET_SNAPSHOT')['state']['health']=='error'
         request('STOP');assert request('GET_SNAPSHOT')['state']['health']=='stopped'
-        result={'passed':True,'browser':context.browser.version,'quietSeconds':quiet_seconds,'actualPipelineAlarmMs':elapsed,'checks':11,'scope':'Synthetic media + test-only localhost permission. No real tabCapture/occlusion/minimization/SJTU acceptance.'}
+        result={'passed':True,'browser':context.browser.version,'quietSeconds':quiet_seconds,'actualPipelineAlarmMs':elapsed,'cooldownRestoreMs':cooldown_elapsed,'checks':11,'scope':'Synthetic media + test-only localhost permission. No real tabCapture/occlusion/minimization/SJTU acceptance.'}
         (OUT/'result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf8')
         print(json.dumps(result,ensure_ascii=False))
     finally:

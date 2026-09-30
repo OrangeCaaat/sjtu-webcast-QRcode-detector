@@ -25,7 +25,7 @@ window.chrome={runtime:{openOptionsPage:async()=>{},sendMessage:async msg=>{
 """
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True, executable_path=executable(p))
-    page = browser.new_page(viewport={'width': 460, 'height': 1080})
+    page = browser.new_page(viewport={'width': 700, 'height': 800})
     page.add_init_script(STUB)
     errors = []
     page.on('pageerror', lambda error: errors.append(str(error)))
@@ -62,7 +62,7 @@ with sync_playwright() as p:
     page.locator('#stop-test').click()
     assert page.evaluate("window.__messages.some(m=>m.type==='TEST_SOUND'&&m.play===true)")
     assert page.evaluate("window.__messages.some(m=>m.type==='TEST_SOUND'&&m.play===false)")
-    settings = browser.new_page(viewport={'width': 900, 'height': 1100})
+    settings = browser.new_page(viewport={'width': 1440, 'height': 900})
     settings.add_init_script(STUB)
     settings.on('pageerror', lambda error: errors.append(str(error)))
     settings.goto('http://127.0.0.1:5173/settings.html')
@@ -71,7 +71,11 @@ with sync_playwright() as p:
     settings.locator('#sound-file').set_input_files({'name': 'bad.mp3', 'mimeType': 'audio/mpeg', 'buffer': b'invalid audio'})
     settings.wait_for_function("document.querySelector('#error').textContent.includes('无法解码')")
     assert settings.locator('#sound-name').inner_text() == '默认提示音'
+    assert page.evaluate('document.body.clientWidth') == 640
+    assert settings.get_by_role('heading',name='注意事项').is_visible()
+    assert 'PPT' in settings.locator('.help .important').inner_text()
+    assert not settings.locator('.local-tag').count()
     assert not errors, errors
-    (OUT / 'result.json').write_text(json.dumps({'passed': True, 'checks': 16, 'page_errors': errors}, ensure_ascii=False, indent=2), encoding='utf-8')
-    print('UI smoke: PASS (16 checks, no page errors)')
+    (OUT / 'result.json').write_text(json.dumps({'passed': True, 'checks': 20, 'page_errors': errors}, ensure_ascii=False, indent=2), encoding='utf-8')
+    print('UI smoke: PASS (20 checks, no page errors)')
     browser.close()
