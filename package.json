@@ -1,0 +1,26 @@
+{
+  "name": "sjtu-webcast-qrcode-detector",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "node scripts/build.mjs",
+    "test:browser": "python tests/browser_smoke.py",
+    "test:samples": "python tests/sample_detection.py",
+    "test:extension": "python tests/extension_smoke.py",
+    "test:pipeline": "python tests/pipeline_integration.py"
+  },
+  "dependencies": {
+    "zxing-wasm": "3.1.4"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.1.30",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.0",
+    "vitest": "^5.0.3"
+  }
+}

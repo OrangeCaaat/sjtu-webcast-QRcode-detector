@@ -1,0 +1,6 @@
+This extension uses zxing-wasm (Sec-ant) and the ZXing-C++ reader compiled to WebAssembly.
+zxing-wasm: https://github.com/Sec-ant/zxing-wasm
+ZXing-C++: https://github.com/zxing-cpp/zxing-cpp
+The JavaScript bundle also contains Vite's module-preload helper.
+Vendor license texts are included under licenses/.
+ZXing-C++ is distributed under Apache License 2.0; see licenses/ZXing-Cpp-LICENSE.txt.

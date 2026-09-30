@@ -1,0 +1,23 @@
+name: Extension checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: python scripts/package-manual.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: webcast-monitor-extension
+          path: |
+            课间哨-Edge-Chrome-0.1.0.zip
+            课间哨-手动验收工具.zip

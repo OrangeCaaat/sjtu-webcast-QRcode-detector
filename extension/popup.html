@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>课间哨</title></head>
+<body class="popup"><main>
+  <header><div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3 12V3h9M20 3h9v9M29 20v9h-9M12 29H3v-9"/><path d="M12 12h8v8h-8z"/></svg><span>课间哨<small>直播二维码提醒</small></span></div><button class="icon-button" id="settings-button" aria-label="打开声音设置">⚙</button></header>
+  <section class="status-card" aria-live="polite"><div class="eyebrow"><span id="status-dot"></span>LIVE MONITOR</div><h1 id="status">已停止</h1><p id="detail">选择直播标签页，开始监控。</p><p class="session-title" id="session-title"></p></section>
+  <div id="error" class="message error" role="alert" hidden></div><div id="warning" class="message" hidden></div>
+  <div class="actions"><button class="primary" id="start">开始监控</button><button id="stop" hidden>停止监控</button><button class="alarm-button" id="ack" hidden>停止报警</button><button id="retry" hidden>重试监控</button></div>
+  <section class="preview-section"><div class="section-line"><h2>监控画面</h2><button class="text-button" id="focus" hidden>返回直播 ↗</button></div><div class="preview"><img id="preview" alt="当前选定的监控区域" hidden><span id="preview-placeholder">开启后显示选定画面</span><span class="corner c1"></span><span class="corner c2"></span><span class="corner c3"></span><span class="corner c4"></span></div><div class="region-actions"><button id="select-region">手动框选区域</button><button id="next-player" hidden>换选播放器</button></div></section>
+  <section class="controls"><h2>检测间隔</h2><fieldset class="segments" aria-label="检测间隔"><label><input type="radio" name="interval" value="250"><span>0.25s</span></label><label><input type="radio" name="interval" value="500" checked><span>0.5s</span></label><label><input type="radio" name="interval" value="1000"><span>1s</span></label><label><input type="radio" name="interval" value="2000"><span>2s</span></label></fieldset><p class="hint">两次检测之间的时间。间隔越短，检测越频繁。</p>
+  <label class="setting-row" for="rearm"><span>重新布防时间<small>所有二维码消失多久后，再次提醒</small></span><span class="number-field"><input id="rearm" type="number" min="1" max="300" step="1" value="10" aria-label="重新布防时间（秒）"><span>秒</span></span></label>
+  <label class="setting-row" for="auto-open"><span>自动打开链接<small>每处二维码每轮只打开一次，保持直播选中</small></span><input class="switch" id="auto-open" type="checkbox"></label>
+  <label class="volume-label" for="volume"><span>报警音量</span><output id="volume-label">70%</output></label><input id="volume" class="slider" type="range" min="0" max="100" value="70" aria-label="报警音量"><div class="sound-actions"><button id="test-sound">▶ 测试声音</button><button id="stop-test">停止测试</button><button class="text-button" id="sound-settings">导入音乐 ↗</button></div>
+  </section><section id="codes-section" hidden><h2>本轮二维码</h2><div id="codes"></div></section>
+  <footer><span id="frame-age">等待监控</span><span>画面仅在本机处理</span></footer>
+</main><script type="module" src="../src/popup.ts"></script></body></html>
