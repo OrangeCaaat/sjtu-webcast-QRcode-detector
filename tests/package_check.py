@@ -8,6 +8,11 @@ with zipfile.ZipFile(archive) as package:
     names=set(package.namelist())
     assert all(not name.startswith(('/', '\\')) and '..' not in name.split('/') for name in names)
     assert not any(name.startswith(('tests/','temp/')) for name in names)
+    assert '使用指南.md' in names
+    guide = package.read('使用指南.md').decode('utf8')
+    assert '## 安装' in guide and '## 开始监控' in guide
+    assert not any(text in guide for text in ('readme-dev.md','实机验收操作指南.md','## 可选：手动测试工具'))
+    assert not any(name.startswith(('tools/','src/','scripts/')) or name.endswith('.py') for name in names)
     manifest=json.loads(package.read('manifest.json'))
     assert manifest['manifest_version']==3
     assert 'host_permissions' not in manifest and 'tabs' not in manifest['permissions']

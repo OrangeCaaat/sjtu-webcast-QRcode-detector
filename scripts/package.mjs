@@ -6,6 +6,13 @@ function crc32(data) { let crc = 0xffffffff; for (const byte of data) crc = tabl
 const files = [];
 async function walk(dir, prefix = '') { for (const item of await readdir(dir, { withFileTypes: true })) { const name = prefix + item.name; if (item.isDirectory()) await walk(join(dir, item.name), name + '/'); else files.push({ name, data: await readFile(join(dir, item.name)) }); } }
 await walk(process.argv[2] ?? 'dist');
+// Ship only the user-facing portion of the README. Developer and test guides
+// remain in the source repository, outside the installation ZIP.
+const readme = await readFile('README.md', 'utf8');
+const userGuide = readme.split(/^## 可选：手动测试工具\s*$/m)[0].trimEnd() + '\n';
+if (userGuide.includes('readme-dev.md') || userGuide.includes('实机验收操作指南.md')) throw new Error('User guide includes developer/test links');
+await writeFile('课堂哨-使用指南.md', userGuide);
+files.push({ name: '使用指南.md', data: Buffer.from(userGuide) });
 const local = [], central = []; let offset = 0;
 const stamp = new Date();
 const dosTime = (stamp.getUTCHours() << 11) | (stamp.getUTCMinutes() << 5) | Math.floor(stamp.getUTCSeconds() / 2);
