@@ -11,7 +11,7 @@ OUT = ROOT / 'test-results' / 'ui'
 OUT.mkdir(parents=True, exist_ok=True)
 STUB = r"""
 window.__messages=[];
-window.__settings={detectionIntervalMs:500,rearmSeconds:10,volume:70,autoOpen:false,customSoundName:null};
+window.__settings={detectionIntervalMs:500,rearmSeconds:10,volume:70,autoOpen:false,autoOpenOnRefresh:false,customSoundName:null};
 window.__state={sessionId:null,tabId:null,title:'',health:'stopped',qrPresent:false,alarms:[],codes:[],detail:'选择直播标签页，开始监控。',region:null,lastFrameAt:0,lastHeartbeatAt:0,retrySince:null};
 window.chrome={runtime:{openOptionsPage:async()=>{},sendMessage:async msg=>{
  window.__messages.push(msg);
@@ -33,6 +33,8 @@ with sync_playwright() as p:
     page.wait_for_load_state('networkidle')
     assert page.locator('#status').inner_text() == '已停止'
     assert page.locator('input[name=interval]:checked').input_value() == '500'
+    assert page.locator('#auto-open-refresh').is_disabled()
+    assert not page.locator('#auto-open-refresh').is_checked()
     for value in ('250', '500', '1000', '2000'):
         page.locator(f'input[name=interval][value="{value}"]').check()
         page.wait_for_function(f'window.__settings.detectionIntervalMs==={value}')
@@ -45,6 +47,20 @@ with sync_playwright() as p:
     page.wait_for_function('window.__settings.rearmSeconds===27')
     page.locator('#auto-open').check()
     page.wait_for_function('window.__settings.autoOpen===true')
+    assert page.locator('#auto-open-refresh').is_enabled()
+    page.locator('#auto-open-refresh').check()
+    page.wait_for_function('window.__settings.autoOpenOnRefresh===true')
+    page.reload();page.wait_for_load_state('networkidle')
+    # This API stub is recreated on reload; real storage persistence is checked
+    # by the packaged pipeline test. Check parent/child interaction here.
+    page.locator('#auto-open').check()
+    page.locator('#auto-open-refresh').check()
+    page.locator('#auto-open').uncheck()
+    page.wait_for_function('!window.__settings.autoOpen&&!window.__settings.autoOpenOnRefresh')
+    assert page.locator('#auto-open-refresh').is_disabled()
+    assert not page.locator('#auto-open-refresh').is_checked()
+    page.locator('#auto-open').check()
+    assert not page.locator('#auto-open-refresh').is_checked()
     page.locator('#start').click()
     page.wait_for_function("document.querySelector('#status').textContent==='监控中'")
     page.evaluate("Object.assign(window.__state,{qrPresent:true,alarms:['qr'],codes:[{id:1,text:'https://example.com/a?token=test',decoded:true,opened:false}],detail:'检测到二维码。'})")
@@ -76,6 +92,6 @@ with sync_playwright() as p:
     assert 'PPT' in settings.locator('.help .important').inner_text()
     assert not settings.locator('.local-tag').count()
     assert not errors, errors
-    (OUT / 'result.json').write_text(json.dumps({'passed': True, 'checks': 20, 'page_errors': errors}, ensure_ascii=False, indent=2), encoding='utf-8')
-    print('UI smoke: PASS (20 checks, no page errors)')
+    (OUT / 'result.json').write_text(json.dumps({'passed': True, 'checks': 27, 'page_errors': errors}, ensure_ascii=False, indent=2), encoding='utf-8')
+    print('UI smoke: PASS (27 checks, no page errors)')
     browser.close()

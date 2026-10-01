@@ -4,6 +4,7 @@ export interface Settings {
   rearmSeconds: number;
   volume: number;
   autoOpen: boolean;
+  autoOpenOnRefresh: boolean;
   customSoundName: string | null;
 }
 export type Health = 'stopped' | 'starting' | 'monitoring' | 'recovering' | 'error';
@@ -35,7 +36,7 @@ export interface Envelope {
 export interface Reply<T = unknown> { ok: boolean; data?: T; error?: string }
 export const DEFAULT_SETTINGS: Settings = {
   detectionIntervalMs: 500, rearmSeconds: 10, volume: 70,
-  autoOpen: false, customSoundName: null,
+  autoOpen: false, autoOpenOnRefresh: false, customSoundName: null,
 };
 export function initialState(): State {
   return { sessionId: null, tabId: null, title: '', health: 'stopped', qrPresent: false,

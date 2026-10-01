@@ -6,6 +6,8 @@ function crc32(data) { let crc = 0xffffffff; for (const byte of data) crc = tabl
 const files = [];
 async function walk(dir, prefix = '') { for (const item of await readdir(dir, { withFileTypes: true })) { const name = prefix + item.name; if (item.isDirectory()) await walk(join(dir, item.name), name + '/'); else files.push({ name, data: await readFile(join(dir, item.name)) }); } }
 await walk(process.argv[2] ?? 'dist');
+const { version } = JSON.parse(await readFile('public/manifest.json', 'utf8'));
+const archive = `classroom-sentinel-${version}.zip`;
 // Ship only the user-facing portion of the README. Developer and test guides
 // remain in the source repository, outside the installation ZIP.
 const readme = await readFile('README.md', 'utf8');
@@ -29,5 +31,5 @@ for (const file of files) {
 }
 const directories = Buffer.concat(central), end = Buffer.alloc(22); end.writeUInt32LE(0x06054b50); end.writeUInt16LE(files.length, 8); end.writeUInt16LE(files.length, 10); end.writeUInt32LE(directories.length, 12); end.writeUInt32LE(offset, 16);
 await mkdir('temp', { recursive: true });
-await writeFile('classroom-sentinel-0.1.1.zip', Buffer.concat([...local, directories, end]));
-console.log(`已打包 ${files.length} 个插件文件：classroom-sentinel-0.1.1.zip`);
+await writeFile(archive, Buffer.concat([...local, directories, end]));
+console.log(`已打包 ${files.length} 个插件文件：${archive}`);

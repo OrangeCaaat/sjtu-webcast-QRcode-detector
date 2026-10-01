@@ -19,6 +19,8 @@ html:has(body.popup){width:640px;min-width:640px}
 .popup .sound-actions .text-button{margin-left:0}
 .popup #codes{max-height:128px;overflow:auto}
 .popup footer{margin-top:14px}
+.switch:disabled{opacity:.45;cursor:not-allowed}
+.setting-row:has(.switch:disabled)>span{color:var(--muted)}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
 .settings-page main{max-width:1080px;margin:20px auto;padding:24px 30px}
 .settings-page header{margin-bottom:20px}

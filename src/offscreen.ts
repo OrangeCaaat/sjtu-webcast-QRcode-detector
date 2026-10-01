@@ -45,7 +45,7 @@ function makeWorker(): void {
     if (data.error) { setFault(data.error); return; }
     lastFrameAt = Date.now();
     if (fault) { fault = null; emit('ENGINE_RECOVERED'); }
-    const result = tracker.update(data.detections, lastFrameAt, settings.detectionIntervalMs, settings.rearmSeconds, settings.autoOpen);
+    const result = tracker.update(data.detections, lastFrameAt, settings.detectionIntervalMs, settings.rearmSeconds, settings.autoOpen, settings.autoOpenOnRefresh);
     emit('DETECTIONS', { result, durationMs: data.durationMs, lastFrameAt });
   };
   worker.onerror = () => setFault('二维码检测线程意外停止。');
@@ -156,7 +156,7 @@ async function handle(message: Envelope): Promise<unknown> {
     if (message.streamId) await capture(message.streamId as string);
     makeWorker(); schedule(); sample(); return true;
   }
-  if (message.type === 'OPEN_RESULT') { tracker.openResult(message.id as number, !!message.success); return true; }
+  if (message.type === 'OPEN_RESULT') { tracker.openResult(message.id as number, !!message.success, message.url as string | undefined); return true; }
   if (message.type === 'PING') return { sessionId, lastFrameAt, fault };
   return false;
 }

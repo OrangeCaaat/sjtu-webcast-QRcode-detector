@@ -2,7 +2,8 @@ from pathlib import Path
 import zipfile, json, re
 
 ROOT = Path(__file__).resolve().parent.parent
-archive = ROOT / 'classroom-sentinel-0.1.1.zip'
+version = json.loads((ROOT / 'public/manifest.json').read_text(encoding='utf8'))['version']
+archive = ROOT / f'classroom-sentinel-{version}.zip'
 with zipfile.ZipFile(archive) as package:
     assert package.testzip() is None, 'ZIP CRC failure'
     names=set(package.namelist())

@@ -82,3 +82,60 @@ describe('二维码报警轮次与开页', () => {
     }
   });
 });
+
+describe('刷新二维码自动开页', () => {
+  it('每次稳定变化都打开，A到B再到A也分别开页；同轮不重复报警', () => {
+    const t = new EpisodeTracker(); let now = 0;
+    for (const text of ['https://example.org/a?token=1', 'https://example.org/a?token=2', 'https://example.org/a?token=1']) {
+      expect(t.update([qr(text)], now, 500, 10, true, true).opens).toHaveLength(0);
+      const result = t.update([qr(text)], now + 500, 500, 10, true, true);
+      expect(result.opens.map(o => o.url)).toEqual([text]);
+      expect(result.alarm).toBe(now === 0);
+      expect(t.update([qr(text)], now + 1000, 500, 10, true, true).opens).toHaveLength(0);
+      now += 1500;
+    }
+  });
+  it('依赖父开关，关闭子开关后恢复同轮只开一次，重新开启即时生效', () => {
+    const t = new EpisodeTracker(); t.update([qr()], 0, 500, 10, true, true); t.update([qr()], 500, 500, 10, true, true);
+    const next = qr('https://example.org/next');
+    t.update([next], 1000, 500, 10, false, true);
+    expect(t.update([next], 1500, 500, 10, false, true).opens).toHaveLength(0);
+    expect(t.update([next], 2000, 500, 10, true, false).opens).toHaveLength(0);
+    expect(t.update([next], 2500, 500, 10, true, true).opens).toHaveLength(1);
+  });
+  it('单帧误识别、未解码及非网页内容不开页', () => {
+    const t = new EpisodeTracker(); t.update([qr()], 0, 500, 10, true, true); t.update([qr()], 500, 500, 10, true, true);
+    expect(t.update([qr('https://example.org/glitch')], 1000, 500, 10, true, true).opens).toHaveLength(0);
+    expect(t.update([qr()], 1500, 500, 10, true, true).opens).toHaveLength(0);
+    expect(t.update([qr()], 2000, 500, 10, true, true).opens).toHaveLength(0);
+    for (const [index, text] of ['weixin://scan', 'plain text', 'javascript:alert(1)'].entries()) {
+      t.update([qr(text)], 2500 + index * 1000, 500, 10, true, true);
+      expect(t.update([qr(text)], 3000 + index * 1000, 500, 10, true, true).opens).toHaveLength(0);
+    }
+    expect(t.update([{ ...qr(), decoded: false }], 6000, 500, 10, true, true).opens).toHaveLength(0);
+  });
+  it('多处展示同一刷新链接只开一页', () => {
+    const t = new EpisodeTracker(); const two = [qr(), qr(undefined, .7)];
+    t.update(two, 0, 500, 10, true, true);
+    expect(t.update(two, 500, 500, 10, true, true).opens).toHaveLength(1);
+    const next = [qr('https://example.org/new'), qr('https://example.org/new', .7)];
+    t.update(next, 1000, 500, 10, true, true);
+    expect(t.update(next, 1500, 500, 10, true, true).opens).toHaveLength(1);
+  });
+  it('布局不确定、开页失败保护仍然生效', () => {
+    const t = new EpisodeTracker(); t.setLayout(1); t.update([qr()], 0, 500, 10, true, true);
+    const first = t.update([qr()], 500, 500, 10, true, true).opens[0]; t.openResult(first.id, false, first.url);
+    const next = qr('https://example.org/new'); t.update([next], 1000, 500, 10, true, true);
+    expect(t.update([next], 1500, 500, 10, true, true).opens).toHaveLength(0);
+    t.setLayout(2); const moved = qr('https://example.org/moved', .7); t.update([moved], 2000, 500, 10, true, true);
+    expect(t.update([moved], 2500, 500, 10, true, true).opens).toHaveLength(0);
+  });
+  it('旧开页回执不覆盖当前刷新链接状态', () => {
+    const t = new EpisodeTracker(); t.update([qr()], 0, 500, 10, true, true);
+    const first = t.update([qr()], 500, 500, 10, true, true).opens[0];
+    const next = qr('https://example.org/new'); t.update([next], 1000, 500, 10, true, true);
+    const second = t.update([next], 1500, 500, 10, true, true).opens[0];
+    t.openResult(first.id, false, first.url); t.openResult(second.id, true, second.url);
+    expect(t.update([next], 2000, 500, 10, true, true).codes[0]).toMatchObject({ opened: true, autoOpenSuppressed: false });
+  });
+});

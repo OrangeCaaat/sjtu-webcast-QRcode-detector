@@ -1,7 +1,19 @@
-import { describe, it, expect } from 'vitest';
-import { validateSettings, safeUrl } from '../src/shared/settings';
+import { describe, it, expect, vi } from 'vitest';
+import { validateSettings, safeUrl, loadSettings } from '../src/shared/settings';
 import { DEFAULT_SETTINGS, INTERVALS } from '../src/shared/types';
 describe('设置校验', () => {
+  it('刷新开页默认关闭，父开关关闭时强制关闭子开关', () => {
+    expect(DEFAULT_SETTINGS.autoOpenOnRefresh).toBe(false);
+    expect(validateSettings({ ...DEFAULT_SETTINGS, autoOpenOnRefresh: true }).autoOpenOnRefresh).toBe(false);
+    expect(validateSettings({ ...DEFAULT_SETTINGS, autoOpen: true, autoOpenOnRefresh: true }).autoOpenOnRefresh).toBe(true);
+    expect(() => validateSettings({ ...DEFAULT_SETTINGS, autoOpenOnRefresh: 'true' as unknown as boolean })).toThrow();
+  });
+  it('旧版设置保留音量等偏好，并补入关闭的新开关', async () => {
+    const { autoOpenOnRefresh: _, ...old } = { ...DEFAULT_SETTINGS, autoOpen: true, volume: 100, rearmSeconds: 1 };
+    vi.stubGlobal('chrome', { storage: { local: { get: async () => ({ settings: old }) } } });
+    try { expect(await loadSettings()).toEqual({ ...old, autoOpenOnRefresh: false }); }
+    finally { vi.unstubAllGlobals(); }
+  });
   it('四档检测间隔及默认值', () => {
     expect(DEFAULT_SETTINGS.detectionIntervalMs).toBe(500);
     for (const interval of INTERVALS) expect(validateSettings({ ...DEFAULT_SETTINGS, detectionIntervalMs: interval }).detectionIntervalMs).toBe(interval);

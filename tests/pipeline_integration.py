@@ -89,6 +89,30 @@ with sync_playwright() as p:
         fixture.locator('#refresh').click();fixture.wait_for_timeout(100);source();fixture.wait_for_timeout(1800)
         assert len([page for page in context.pages if page.url.startswith('https://example.org/course')])==2
         assert not request('GET_SNAPSHOT')['state']['alarms']
+        # Enable refresh opening live: current B opens, then B -> A -> B
+        # must open on each confirmed transition without ringing again.
+        options.update({'autoOpenOnRefresh':True});request('SAVE_SETTINGS',settings=options)
+        popup.reload();popup.wait_for_load_state('networkidle')
+        assert popup.locator('#auto-open-refresh').is_checked()
+        def destination_count():
+            return len([page for page in context.pages if page.url.startswith('https://example.org/course')])
+        deadline=time.monotonic()+5
+        while destination_count()<3 and time.monotonic()<deadline: popup.wait_for_timeout(100)
+        assert destination_count()==3
+        for count in (4,5):
+            fixture.locator('#refresh').click();fixture.wait_for_timeout(100);source()
+            deadline=time.monotonic()+5
+            while destination_count()<count and time.monotonic()<deadline: popup.wait_for_timeout(100)
+            assert destination_count()==count
+            popup.wait_for_timeout(700);assert destination_count()==count
+            assert not request('GET_SNAPSHOT')['state']['alarms']
+        assert fixture.evaluate('document.hasFocus()'), 'Auto opening moved focus away from live tab'
+        options.update({'autoOpenOnRefresh':False});request('SAVE_SETTINGS',settings=options)
+        fixture.locator('#refresh').click();fixture.wait_for_timeout(100);source();fixture.wait_for_timeout(1800)
+        assert destination_count()==5
+        options.update({'autoOpen':False,'autoOpenOnRefresh':True})
+        assert request('SAVE_SETTINGS',settings=options)['autoOpenOnRefresh'] is False
+        options.update({'autoOpen':True,'autoOpenOnRefresh':False});request('SAVE_SETTINGS',settings=options)
         fixture.locator('#hide').click();fixture.wait_for_timeout(100);source();cooldown_start=time.monotonic()
         wait_truthy(popup,"chrome.storage.session.get('state').then(s=>s.state?.health==='monitoring'&&!s.state.qrPresent)",timeout=5000)
         cooldown_elapsed=round((time.monotonic()-cooldown_start)*1000)
@@ -104,7 +128,7 @@ with sync_playwright() as p:
         wait_truthy(popup,"chrome.storage.session.get('state').then(s=>s.state?.fatalError&&s.state?.health==='error')",timeout=5000)
         popup.wait_for_timeout(1500);assert request('GET_SNAPSHOT')['state']['health']=='error'
         request('STOP');assert request('GET_SNAPSHOT')['state']['health']=='stopped'
-        result={'passed':True,'browser':context.browser.version,'quietSeconds':quiet_seconds,'actualPipelineAlarmMs':elapsed,'cooldownRestoreMs':cooldown_elapsed,'checks':11,'scope':'Synthetic media + test-only localhost permission. No real tabCapture/occlusion/minimization/SJTU acceptance.'}
+        result={'passed':True,'browser':context.browser.version,'quietSeconds':quiet_seconds,'actualPipelineAlarmMs':elapsed,'cooldownRestoreMs':cooldown_elapsed,'checks':17,'refreshOpens':3,'keepsLiveFocused':True,'scope':'Synthetic media + test-only localhost permission. No real tabCapture/occlusion/minimization/SJTU acceptance.'}
         (OUT/'result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf8')
         print(json.dumps(result,ensure_ascii=False))
     finally:

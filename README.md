@@ -6,7 +6,7 @@
 
 ## 安装
 
-插件安装包：[classroom-sentinel-0.1.1.zip](https://github.com/OrangeCaaat/sjtu-webcast-QRcode-detector/releases/download/v0.1.1/classroom-sentinel-0.1.1.zip)。独立说明：[使用指南（中文）](https://github.com/OrangeCaaat/sjtu-webcast-QRcode-detector/releases/download/v0.1.1/USER-GUIDE.zh-CN.md)。
+当前版本：**0.1.2**。下载 [插件安装包](https://github.com/OrangeCaaat/sjtu-webcast-QRcode-detector/releases/download/v0.1.2/classroom-sentinel-0.1.2.zip)，包内附使用指南；也可单独下载 [中文使用指南](https://github.com/OrangeCaaat/sjtu-webcast-QRcode-detector/releases/download/v0.1.2/USER-GUIDE.zh-CN.md)。
 
 1. 将安装包解压到一个固定文件夹，确认该文件夹内直接包含 `manifest.json`。
 2. 在浏览器中打开“管理扩展”标签页；或在 Chrome 地址栏输入 `chrome://extensions`，Edge 输入 `edge://extensions`。
@@ -71,9 +71,17 @@
 
 二维码报警使用默认提示音或导入音乐；故障始终使用另一种提示音。设置页可分别“测试二维码报警”“测试故障报警”，测试声音持续播放，需点击“停止测试”。
 
-### 自动打开链接
+### 自动打开链接与二维码刷新
 
-只打开 **HTTP / HTTPS** 链接，保留链接参数。每处二维码每轮首次解码时打开一次，同一完整链接在该轮只开一页，同处动态刷新不会不断开页。二维码位置无法确认时暂停自动开页，可使用面板中的手动入口。
+只打开 **HTTP / HTTPS** 链接，保留链接参数，在后台打开并保持课程页选中。
+
+“刷新二维码时自动打开”默认关闭，必须先开启“自动打开链接”才能操作。两者保存后立即生效：
+
+- 子开关关闭：保持原来的行为，同处二维码每轮只开一次，同处动态刷新不继续开页。
+- 子开关开启：二维码链接每次变化并连续识别两次后，自动打开对应链接；持续显示同一内容不会重复开页。A → B → A 的内容变化也会分别打开，同一画面多处显示相同链接不重复开页。
+- 关闭“自动打开链接”：子开关同步关闭并禁用；再开启父开关时，子开关仍关闭，需要手动启用。
+
+刷新开页可能产生多个后台标签页；消警后该功能仍继续工作，同轮二维码刷新不会重复响铃。如果图像刷新但解码链接完全相同，则不会新开页。二维码位置无法确认时暂停自动开页，可使用面板中的手动入口。
 
 普通文本和其他协议内容可查看、复制。打开链接后，仍需按课程要求完成签到或答题。
 

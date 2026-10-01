@@ -6,6 +6,7 @@ let settings: Settings = { ...DEFAULT_SETTINGS };
 let saving = false, updating = false, testing = false;
 let codeSignature = '';
 const rearm = element<HTMLInputElement>('rearm'), autoOpen = element<HTMLInputElement>('auto-open'), volume = element<HTMLInputElement>('volume');
+const autoOpenOnRefresh = element<HTMLInputElement>('auto-open-refresh');
 function render(state: State): void {
   const names = { stopped: '已停止', starting: '正在启动', monitoring: state.qrPresent ? '检测到二维码' : '监控中', recovering: '正在恢复', error: '出现问题' };
   element('status').textContent = state.health === 'monitoring' && state.cooldownUntil ? '冷却中' : names[state.health]; element('detail').textContent = state.detail;
@@ -50,6 +51,9 @@ function applySettings(): void {
   if (document.activeElement !== rearm) rearm.value = String(settings.rearmSeconds);
   if (document.activeElement !== volume) volume.value = String(settings.volume);
   autoOpen.checked = settings.autoOpen; element('volume-label').textContent = `${volume.value}%`;
+  autoOpenOnRefresh.disabled = !settings.autoOpen;
+  autoOpenOnRefresh.checked = settings.autoOpen && settings.autoOpenOnRefresh;
+  element('refresh-hint').textContent = !settings.autoOpen ? '需先开启“自动打开链接”' : settings.autoOpenOnRefresh ? '链接每次变化并确认后打开；可能产生多个标签页' : '关闭时，同处二维码每轮只打开一次';
 }
 async function refresh(): Promise<void> {
   if (updating) return; updating = true;
@@ -70,7 +74,11 @@ rearm.onchange = () => {
   if (!Number.isInteger(value) || value < 1 || value > 300 || !rearm.value.trim()) { showError(new Error('冷却时间必须是 1–300 秒的整数。')); rearm.value = String(settings.rearmSeconds); return; }
   void save({ rearmSeconds: value });
 };
-autoOpen.onchange = () => { void save({ autoOpen: autoOpen.checked }); };
+autoOpen.onchange = () => {
+  if (!autoOpen.checked) { autoOpenOnRefresh.disabled = true; autoOpenOnRefresh.checked = false; }
+  void save({ autoOpen: autoOpen.checked, ...(!autoOpen.checked ? { autoOpenOnRefresh: false } : {}) });
+};
+autoOpenOnRefresh.onchange = () => { void save({ autoOpenOnRefresh: autoOpen.checked && autoOpenOnRefresh.checked }); };
 volume.oninput = () => { element('volume-label').textContent = `${volume.value}%`; };
 volume.onchange = () => { void save({ volume: Number(volume.value) }); };
 element('start').onclick = () => { void action(async () => { const result = await request<{ selecting: boolean }>('START'); if (result.selecting) window.close(); }); };

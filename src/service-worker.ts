@@ -218,12 +218,13 @@ async function handle(message: Envelope, sender: chrome.runtime.MessageSender): 
     state.detail = result.cooldownUntil ? `二维码已消失，冷却剩余 ${Math.max(0, Math.ceil((result.cooldownUntil - Date.now()) / 1000))} 秒。检测继续。` : state.qrPresent ? !result.alarm && !state.alarms.includes('qr') ? '已停止报警，监控继续。二维码消失并完成冷却后恢复监控状态。' : result.codes.some(c => c.decoded) ? '检测到二维码。请处理课程中的签到或问卷。' : '疑似二维码，未解码。请返回直播确认。' : state.region?.playerPaused ? '播放器已暂停，正在检测当前画面。恢复播放后继续跟随视频。' : state.region?.playerTime === undefined ? '正在检测选定区域。' : '正在检测直播画面。';
     if (result.alarm) await alarm('qr');
     for (const open of result.opens) {
+      if (!settings.autoOpen || (open.refreshed && !settings.autoOpenOnRefresh)) continue;
       let success = false;
       if (settings.autoOpen && safeUrl(open.url)) {
         try { await chrome.tabs.create({ url: open.url, active: false }); success = true; } catch { state.detail = '二维码已检测到，但后台打开失败，可手动打开。'; }
       }
       const code = state.codes.find(c => c.id === open.id); if (code) code.opened = success;
-      await offscreen('OPEN_RESULT', { id: open.id, success }).catch(() => undefined);
+      await offscreen('OPEN_RESULT', { id: open.id, success, url: open.url }).catch(() => undefined);
     }
     await publish(); return true;
   }

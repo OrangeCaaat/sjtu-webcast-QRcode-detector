@@ -4,9 +4,9 @@ import { safeUrl } from '../shared/settings';
 interface Track {
   id: number; rect: Rect; firstSeen: number; lastSeen: number; hits: number;
   decodedHits: number; text?: string; confirmed: boolean; decoded: boolean;
-  attempted: boolean; opened: boolean; suppressed: boolean;
+  attempted: boolean; attemptedUrl?: string; opened: boolean; suppressed: boolean;
 }
-export interface EpisodeResult { alarm: boolean; present: boolean; cooldownUntil?: number; codes: CodeView[]; opens: { id: number; url: string }[] }
+export interface EpisodeResult { alarm: boolean; present: boolean; cooldownUntil?: number; codes: CodeView[]; opens: { id: number; url: string; refreshed?: boolean }[] }
 export function overlap(a: Rect, b: Rect): number {
   const w = Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x));
   const h = Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y));
@@ -34,11 +34,12 @@ export class EpisodeTracker {
     if (this.layoutVersion && this.layoutVersion !== version && this.tracks.length) this.uncertainLayout = true;
     this.layoutVersion = version;
   }
-  openResult(id: number, success: boolean): void {
+  openResult(id: number, success: boolean, url?: string): void {
     const track = this.tracks.find(t => t.id === id);
+    if (url && track?.attemptedUrl !== url) return;
     if (track) { track.opened = success; if (!success) track.suppressed = true; }
   }
-  update(detections: Detection[], now: number, interval: number, rearmSeconds: number, autoOpen: boolean): EpisodeResult {
+  update(detections: Detection[], now: number, interval: number, rearmSeconds: number, autoOpen: boolean, autoOpenOnRefresh = false): EpisodeResult {
     if (!detections.length) {
       this.goneSince ??= now;
       if (now - this.goneSince >= rearmSeconds * 1000) this.reset();
@@ -59,6 +60,7 @@ export class EpisodeTracker {
       // Keep spatial anchors across a presentation, even if the displayed payload changes.
       track.rect = detection.rect; track.lastSeen = now; track.hits++;
       if (detection.decoded && detection.text) {
+        if (autoOpenOnRefresh && track.text !== detection.text) track.opened = false;
         track.decodedHits = track.text === detection.text ? track.decodedHits + 1 : 1;
         track.text = detection.text;
         if (track.decodedHits >= 2) { track.confirmed = true; track.decoded = true; }
@@ -67,13 +69,17 @@ export class EpisodeTracker {
     }
     let alarm = false;
     if (!this.triggered && this.tracks.some(t => t.confirmed)) { this.triggered = true; alarm = true; }
-    const opens: { id: number; url: string }[] = [];
+    const opens: EpisodeResult['opens'] = [];
     for (const track of this.tracks) {
       const url = safeUrl(track.text);
-      if (autoOpen && track.decoded && track.decodedHits >= 2 && track.confirmed && !track.attempted && !track.suppressed && used.has(track.id) && url) {
-        track.attempted = true;
-        if (!this.openedUrls.has(url)) {
-          this.openedUrls.add(url); opens.push({ id: track.id, url });
+      const refreshed = autoOpenOnRefresh && track.attempted && track.attemptedUrl !== url;
+      if (autoOpen && track.decoded && track.decodedHits >= 2 && track.confirmed && (!track.attempted || refreshed) && !track.suppressed && used.has(track.id) && url) {
+        // Deduplicate copies currently showing the same confirmed link, while
+        // allowing A -> B -> A at one position to open each confirmed change.
+        const duplicate = this.tracks.some(other => other.id !== track.id && used.has(other.id) && other.decodedHits >= 2 && other.attemptedUrl === url && safeUrl(other.text) === url);
+        track.attempted = true; track.attemptedUrl = url;
+        if ((!this.openedUrls.has(url) || refreshed) && !duplicate) {
+          this.openedUrls.add(url); opens.push({ id: track.id, url, ...(refreshed ? { refreshed: true } : {}) });
         } else { track.opened = true; }
       }
     }
