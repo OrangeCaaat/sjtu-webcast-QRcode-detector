@@ -19,5 +19,5 @@ jobs:
         with:
           name: webcast-monitor-extension
           path: |
-            课堂哨-Edge-Chrome-0.1.1.zip
+            classroom-sentinel-0.1.1.zip
             课堂哨-手动验收工具.zip

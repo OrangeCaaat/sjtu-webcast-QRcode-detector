@@ -10,3 +10,4 @@ tests/private/
 public/wasm/
 public/licenses/
 __pycache__/
+USER-GUIDE.zh-CN.md

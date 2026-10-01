@@ -6,7 +6,7 @@
 
 ## 安装
 
-插件安装包：[课堂哨-Edge-Chrome-0.1.1.zip](https://github.com/OrangeCaaat/sjtu-webcast-QRcode-detector/releases/download/v0.1.1/%E8%AF%BE%E5%A0%82%E5%93%A8-Edge-Chrome-0.1.1.zip)。独立说明：[课堂哨-使用指南.md](https://github.com/OrangeCaaat/sjtu-webcast-QRcode-detector/releases/download/v0.1.1/%E8%AF%BE%E5%A0%82%E5%93%A8-%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97.md)。
+插件安装包：[classroom-sentinel-0.1.1.zip](https://github.com/OrangeCaaat/sjtu-webcast-QRcode-detector/releases/download/v0.1.1/classroom-sentinel-0.1.1.zip)。独立说明：[使用指南（中文）](https://github.com/OrangeCaaat/sjtu-webcast-QRcode-detector/releases/download/v0.1.1/USER-GUIDE.zh-CN.md)。
 
 1. 将安装包解压到一个固定文件夹，确认该文件夹内直接包含 `manifest.json`。
 2. 在浏览器中打开“管理扩展”标签页；或在 Chrome 地址栏输入 `chrome://extensions`，Edge 输入 `edge://extensions`。
