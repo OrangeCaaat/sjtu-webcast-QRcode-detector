@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>课堂哨 · 手动验收画面</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eef2ed;color:#172a3c;font:16px/1.6 "Microsoft YaHei",sans-serif}main{max-width:1100px;margin:36px auto;padding:0 24px}h1{font-size:28px;margin-bottom:8px}p{margin:8px 0}canvas{display:block;width:min(100%,100vh);height:auto;aspect-ratio:5/3;border:1px solid #b8c8bd;background:#fff;border-radius:8px;margin:18px 0}button,input,select{font:inherit;padding:8px 12px;border:1px solid #91aa9c;border-radius:5px;background:white;color:#172a3c}button{cursor:pointer}button:hover{background:#dfeae2}.controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}.hint{background:#fff;padding:14px 18px;border-left:4px solid #277552}#schedule{font-weight:bold}input{width:90px}
+</style>
+<main>
+<h1>手动验收画面</h1>
+<p>这里是本机生成的合成课程画面。先打开课堂哨，选择「手动框选区域」，拖拽覆盖下方整块画面。检测间隔选 0.5s。</p>
+<canvas id="screen" width="1500" height="900"></canvas>
+<div class="controls">
+<button id="show">显示两个二维码</button><button id="hide">隐藏全部二维码</button><button id="refresh">同处刷新二维码内容</button>
+<button id="clear-plan">取消定时</button>
+</div>
+<div class="controls">
+<label>等待 <select id="delay"><option value="10">10 秒（快速检查）</option><option value="1800" selected>30 分钟（持续测试）</option></select></label>
+<button id="plan">开始等待，然后显示二维码</button>
+</div>
+<p id="schedule">未启动定时。</p>
+<div class="hint">保持本页为浏览器选中的标签页。定时开始后，可用其他软件完全遮挡浏览器，或最小化浏览器。二维码出现后保持可见，直到手动隐藏。记录听到报警的时间，返回本页查看画面里的「本轮二维码出现时间」。</div>
+<p>二维码是 example.org 的演示链接，不包含课程信息。这个页面验证真实扩展的标签采集与后台运行；交大播放器适配仍需在真实课程页单独验证。</p>
+</main>
+<script>
+const canvas=document.querySelector('#screen'),ctx=canvas.getContext('2d');
+const images=['a','b','c'].map(name=>{const image=new Image();image.src=name+'.png';return image;});
+let shown=false,revision=0,deadline=0,appearedAt=0;
+function show(){if(!shown)appearedAt=Date.now();shown=true;}
+document.querySelector('#show').onclick=show;
+document.querySelector('#hide').onclick=()=>{shown=false;appearedAt=0;};
+document.querySelector('#refresh').onclick=()=>{revision++;show();};
+document.querySelector('#clear-plan').onclick=()=>{deadline=0;document.querySelector('#schedule').textContent='已取消定时。';};
+document.querySelector('#plan').onclick=()=>{shown=false;appearedAt=0;deadline=Date.now()+Number(document.querySelector('#delay').value)*1000;};
+function tick(){
+const now=Date.now();
+if(deadline){const left=Math.ceil((deadline-now)/1000);if(left<=0){deadline=0;show();document.querySelector('#schedule').textContent='定时完成；二维码持续显示，等待手动隐藏。';}else document.querySelector('#schedule').textContent='距离显示二维码还剩 '+left+' 秒。';}
+ctx.fillStyle='#fff';ctx.fillRect(0,0,1500,900);ctx.fillStyle='#203243';ctx.font='34px sans-serif';ctx.fillText('合成课程 · 真实标签采集测试',70,75);ctx.font='24px monospace';ctx.fillText('画面更新时间：'+new Date(now).toLocaleTimeString('zh-CN',{hour12:false}),70,125);
+ctx.font='26px sans-serif';ctx.fillText(shown?'本轮二维码出现时间：'+new Date(appearedAt).toLocaleTimeString('zh-CN',{hour12:false}):'目前没有二维码：请在浏览器被遮挡或最小化后等待',70,180);
+if(shown){if(images[revision%2].complete&&images[revision%2].naturalWidth)ctx.drawImage(images[revision%2],170,270,390,390);if(images[2].complete&&images[2].naturalWidth)ctx.drawImage(images[2],910,270,390,390);ctx.fillText('位置 A · 内容版本 '+(revision+1),170,720);ctx.fillText('位置 B · 固定内容',910,720);}
+else{ctx.fillStyle='#d7e3db';for(let i=0;i<5;i++)ctx.fillRect(70,270+i*85,1150-i*90,28);}
+}
+setInterval(tick,40);tick();
+</script>
+</html>

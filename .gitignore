@@ -1,0 +1,12 @@
+node_modules/
+dist/
+temp/
+test-results/
+*.zip
+课堂哨-使用指南.md
+tests/private/
+.env
+.env.*
+public/wasm/
+public/licenses/
+__pycache__/

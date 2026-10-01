@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>课堂哨 · 声音设置</title></head>
+<body class="settings-page"><main>
+<header><div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3 12V3h9M20 3h9v9M29 20v9h-9M12 29H3v-9"/><path d="M12 12h8v8h-8z"/></svg><span>课堂哨<small>声音设置</small></span></div></header>
+<div class="settings-heading"><p class="eyebrow">MAKE IT HEARD</p><h1>别错过，下一次提醒。</h1></div>
+<div id="error" class="message error" role="alert" hidden></div><div id="success" class="sr-only" role="status" hidden></div>
+<aside class="help"><h2>注意事项</h2><p class="important">监控交大课程直播时，请确保直播主窗口显示的是 PPT 界面。</p><p>先播放课程，再从浏览器工具栏开启监控；电脑需保持唤醒。暂停视频时，插件继续检测当前画面。</p><p>关闭系统通知不会停止报警，请使用“停止报警”。重载扩展后请刷新直播页再开启。</p><p>自动打开链接后，仍需按课程要求完成签到或答题。</p></aside>
+<div class="settings-grid">
+<section class="settings-card"><h2>二维码报警声音</h2><p id="sound-name" class="sound-name">默认提示音</p><label class="file-zone"><input id="sound-file" type="file" accept=".mp3,.wav,.ogg,audio/mpeg,audio/wav,audio/ogg"><strong>选择本地音乐文件</strong><span>MP3 / WAV / OGG · 最大 20 MB</span></label><p class="hint">循环播放直到手动停止；故障提醒使用另一种提示音。</p><button id="reset-sound">恢复默认提示音</button></section>
+<section class="settings-card"><label class="volume-label" for="volume"><h2>报警音量</h2><output id="volume-label">70%</output></label><input class="slider" id="volume" type="range" min="0" max="100" value="70"><div class="sound-actions"><button class="primary" id="test-sound">测试二维码报警</button><button id="test-fault">测试故障报警</button><button id="stop-test">停止测试</button></div><p class="hint">测试声音会持续播放，请点击停止。系统静音、输出设备和系统音量也会影响实际声音。</p></section>
+</div><footer><span>课堂哨 · 声音设置</span></footer>
+</main><script type="module" src="../src/options.ts"></script></body></html>
